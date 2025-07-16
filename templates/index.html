@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Web App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        button {
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="container bg-white rounded-xl shadow-lg p-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Document Q&A with RAG</h1>
+
+        <div class="mb-6">
+            <label for="queryInput" class="block text-gray-700 text-sm font-medium mb-2">Ask a question about your documents:</label>
+            <textarea id="queryInput" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800" placeholder="e.g., What is the main topic of the document?"></textarea>
+        </div>
+
+        <div class="flex justify-center mb-6">
+            <button id="submitBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md flex items-center justify-center">
+                Submit Query
+            </button>
+        </div>
+
+        <div id="loadingIndicator" class="text-center text-blue-600 font-medium hidden mb-4">
+            <span class="loading-spinner"></span> Processing your request...
+        </div>
+
+        <div class="bg-gradient-to-br from-blue-50 to-white p-6 rounded-xl border border-blue-200 shadow-md mt-4">
+            <h2 class="text-xl font-bold text-blue-700 mb-3">Answer:</h2>
+            <div id="answerOutput" class="text-lg text-gray-900 leading-relaxed whitespace-pre-line min-h-[2rem] font-medium"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('submitBtn').addEventListener('click', async () => {
+            const queryInput = document.getElementById('queryInput');
+            const answerOutput = document.getElementById('answerOutput');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const submitBtn = document.getElementById('submitBtn');
+
+            const query = queryInput.value.trim();
+            if (!query) {
+                answerOutput.textContent = "Please enter a question.";
+                return;
+            }
+
+            // Show loading indicator and disable button
+            loadingIndicator.classList.remove('hidden');
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            answerOutput.textContent = "Thinking..."; // Clear previous answer
+
+            try {
+                const response = await fetch('/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: query }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                answerOutput.textContent = data.answer.replace(/\*\*/g, '');
+            } catch (error) {
+                console.error('Error:', error);
+                answerOutput.textContent = `Error: Could not get an answer. Please try again. (${error.message})`;
+            } finally {
+                // Hide loading indicator and re-enable button
+                loadingIndicator.classList.add('hidden');
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        });
+    </script>
+</body>
+</html>
