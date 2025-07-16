@@ -2,10 +2,17 @@
 
 FROM python:3.13-slim AS base
 
+
 WORKDIR /app
+
 
 # Builder stage: install dependencies in a venv
 FROM base AS builder
+
+ARG http_proxy
+ARG https_proxy
+ENV http_proxy=$http_proxy
+ENV https_proxy=$https_proxy
 
 # Install system dependencies for common Python packages (e.g., for numpy, torch, faiss, etc.)
 RUN apt-get update && \
@@ -15,8 +22,9 @@ RUN apt-get update && \
         libsm6 \
         libxext6 \
         libxrender-dev \
-        git \
-    && rm -rf /var/lib/apt/lists/*
+        git && \
+    rm -rf /var/lib/apt/lists/*
+
 
 # Copy only requirements.txt first for better cache usage
 COPY --link requirements.txt ./
@@ -24,7 +32,6 @@ COPY --link requirements.txt ./
 # Create venv and install dependencies using pip cache
 RUN python -m venv .venv && \
     .venv/bin/pip install --upgrade pip && \
-    --mount=type=cache,target=/root/.cache/pip \
     .venv/bin/pip install -r requirements.txt
 
 # Copy the rest of the application code (excluding .git, .env, etc.)
@@ -44,6 +51,9 @@ COPY --from=builder /app /app
 
 # Set environment so venv is used by default
 ENV PATH="/app/.venv/bin:$PATH"
+
+# Create data directories and set permissions
+RUN mkdir -p /app/data/pdfs /app/data/faiss_index && chmod -R 777 /app/data
 
 # Expose the port Flask/Gunicorn will listen on
 EXPOSE 5000

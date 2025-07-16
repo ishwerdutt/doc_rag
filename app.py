@@ -17,9 +17,7 @@ def create_app():
     os.makedirs(app.config['FAISS_INDEX_PATH'], exist_ok=True)
 
     # Setup RAG components when the app starts
-    # This will load/create the vectorstore and initialize the LLM
-    # We use app.app_context() to ensure Flask's context is available
-    # during RAG component setup, which is necessary for accessing app.config.
+    # initializing rag components
     with app.app_context():
         setup_rag_components()
 
@@ -30,5 +28,4 @@ app = create_app()
 
 
 if __name__ == '__main__':
-    # When running with `python app.py`, we explicitly run the Flask development server.
     app.run(debug=app.config['DEBUG'], host=app.config['HOST'], port=app.config['PORT'])
