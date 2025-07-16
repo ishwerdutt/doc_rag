@@ -1,0 +1,20 @@
+services:
+  python-app:
+    build:
+      context: .
+    container_name: python-app
+    restart: unless-stopped
+    init: true
+    # env_file: ./.env  # Uncomment if .env file exists
+    ports:
+      - "5000:5000"  # Expose Flask/Gunicorn app
+    # volumes:
+    #   - ./data/pdfs:/app/data/pdfs  # Uncomment for local PDF development
+    #   - ./data/faiss_index:/app/data/faiss_index  # Uncomment for local FAISS index development
+    networks:
+      - app-net
+    # No depends_on needed as there are no external services
+
+networks:
+  app-net:
+    driver: bridge

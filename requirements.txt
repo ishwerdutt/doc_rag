@@ -13,3 +13,4 @@ bitsandbytes
 langchain-huggingface
 langchain-google-genai
 google-generativeai
+gunicorn

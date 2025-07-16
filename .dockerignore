@@ -1,0 +1,101 @@
+# 1. Version control
+.git/
+.gitignore
+.svn/
+.hg/
+
+# 2. Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyo
+*.pyc
+*.pyo
+*.pyd
+*.pyi
+.pytest_cache/
+.coverage
+.cache/
+
+# 3. Virtual environments
+myenv/
+venv/
+.env/
+.venv/
+
+# 4. Environment and secrets
+.env
+.env.*
+*.env
+*.env.*
+*.pem
+*.key
+*.crt
+config.local.*
+*.local.yml
+
+# 5. Build and distribution outputs
+dist/
+build/
+out/
+
+# 6. Node.js (if present in future)
+node_modules/
+npm-debug.log
+yarn-debug.log
+
+# 7. Go (if present in future)
+/vendor/
+*.test
+.go-cache/
+
+# 8. Java (if present in future)
+target/
+*.class
+.gradle/
+
+# 9. IDE/editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+*.bak
+
+# 10. Test and debug artifacts
+test/
+tests/
+*_test.go
+debug/
+*.log
+
+# 11. Documentation and markdown
+docs/
+*.md
+README*
+
+# 12. Docker and Compose files
+.dockerignore
+Dockerfile*
+docker-compose*
+compose.yaml
+
+# 13. Temporary and local files
+tmp/
+temp/
+*.tmp
+.local/
+local/
+
+# 14. Miscellaneous
+*.a
+*.lib
+*.mat
+
+# 15. Project-specific data (if not needed in build context)
+data/pdfs/
+
+# Allow specific files if needed (uncomment if required)
+#!app.py
+#!config.py
