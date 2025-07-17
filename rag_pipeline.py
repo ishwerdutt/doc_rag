@@ -18,7 +18,9 @@ qa_chain = None
 llm = None
 retriever = None # New global for MultiQueryRetriever
 
-def setup_rag_components(): # Removed 'app' argument, use current_app
+# initializing rag components
+
+def setup_rag_components(): 
     global vectorstore, qa_chain, llm, retriever
     
     print("Setting up RAG components...")
@@ -128,7 +130,7 @@ def get_rag_answer(user_query):
     print(f"Performing advanced retrieval for query: '{user_query}'...")
     try:
         # Use MultiQueryRetriever to get relevant documents
-        # This will internally generate multiple queries and combine results
+     
         docs = retriever.invoke(user_query)
         print(f"MultiQueryRetriever retrieved {len(docs)} unique documents.")
 
@@ -136,12 +138,12 @@ def get_rag_answer(user_query):
         context = "\n\n".join([doc.page_content for doc in docs])
 
         # Get answer from the QA chain
-        # The qa_chain.invoke() method directly returns a dictionary with 'output_text'
-        # when using the "stuff" chain type.
+        
+       
         answer_result = qa_chain.invoke({"input_documents": docs, "question": user_query})
 
         # Extract the answer from the chain's output
-        # The output of load_qa_chain().invoke() is typically a dictionary with 'output_text'
+        
         if isinstance(answer_result, dict) and 'output_text' in answer_result:
             answer = answer_result['output_text']
         else:

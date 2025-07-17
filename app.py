@@ -1,4 +1,6 @@
 # app.py
+from dotenv import load_dotenv
+load_dotenv()
 from flask import Flask
 from config import Config
 from routes import main_bp

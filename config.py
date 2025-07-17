@@ -14,6 +14,7 @@ class Config:
     DEBUG = True
     PORT = 5000
     HOST = '0.0.0.0'
-    GOOGLE_API_KEY = "AIzaSyCMDMzTUoLLrkTH7ALeNYdrX4sJ6U786_0" # will be stored in env variables
+    # Load Google API key from environment variable, fallback to placeholder if not set
+    GOOGLE_API_KEY = os.getenv("API_KEY")  
     
     
