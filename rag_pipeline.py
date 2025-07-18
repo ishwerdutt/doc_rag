@@ -8,13 +8,10 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.prompts import PromptTemplate
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
-from langchain.retrievers.ensemble import EnsembleRetriever # Still imported, but only if you were to add other retrievers
 from langchain.retrievers import MultiQueryRetriever
-# Removed: from langchain_community.retrievers import BM25Retriever # Removed BM25Retriever
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 
-# Removed: from sentence_transformers import SentenceTransformer # Not directly needed without CrossEncoder
 
 
 # --- Global Variables ---
