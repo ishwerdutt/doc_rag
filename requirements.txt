@@ -15,3 +15,4 @@ langchain-google-genai
 google-generativeai
 gunicorn
 python-dotenv
+rank_bm25
