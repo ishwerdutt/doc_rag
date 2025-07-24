@@ -377,7 +377,7 @@ def setup_rag_components():
         current_app.logger.info("[Retriever] Initializing base retriever and MultiQueryRetriever.")
         
         base_retriever = vectorstore.as_retriever(search_kwargs={"k": 20})
-        compressor = FlashrankRerank(top_n=7)
+        compressor = FlashrankRerank(top_n=5)
         
         compression_retriever = ContextualCompressionRetriever(
             base_compressor=compressor, 
