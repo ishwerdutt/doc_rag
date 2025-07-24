@@ -5,9 +5,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 class Config:
     PDF_DATA_PATH = os.path.join(BASE_DIR, 'data', 'pdfs')
     FAISS_INDEX_PATH = os.path.join(BASE_DIR, 'data', 'faiss_index')
-    
-    #huggingface model to use
-    #HUGGINGFACE_MODEL_NAME = "distilgpt2"
+    MODEL_NAME = "gemini-2.5-flash"
+
     
     # flask app configurations
     

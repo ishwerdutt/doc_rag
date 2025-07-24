@@ -10,8 +10,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
-from langchain.retrievers import MultiQueryRetriever, ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import FlashrankRerank
+from langchain.retrievers import MultiQueryRetriever
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -276,14 +275,14 @@ def setup_rag_components():
     """
     global vectorstore, qa_chain, llm, retriever
 
-    current_app.logger.info("[RAG Setup] Initiating components with CONTEXTUAL CHUNKING and RERANKING.")
+    current_app.logger.info("[RAG Setup] Initiating components with CONTEXTUAL CHUNKING and MULTIQUERY RETRIEVAL.")
     current_app.logger.debug(f"[RAG Setup] Configured PDF_DATA_PATH: {current_app.config.get('PDF_DATA_PATH')}")
     current_app.logger.debug(f"[RAG Setup] Configured FAISS_INDEX_PATH: {current_app.config.get('FAISS_INDEX_PATH')}")
 
     pdf_data_path = current_app.config['PDF_DATA_PATH']
     faiss_index_path = current_app.config['FAISS_INDEX_PATH']
     api_key = current_app.config['GOOGLE_API_KEY']
-    model_name = "gemini-2.5-flash"
+    model_name = current_app.config.get('MODEL_NAME')
 
     # Validate API key presence
     if not api_key or api_key == "YOUR_GEMINI_API_KEY":
@@ -362,33 +361,25 @@ def setup_rag_components():
         llm = ChatGoogleGenerativeAI(
             model=model_name,
             google_api_key=api_key,
-            temperature=0.7
+            temperature=0.5
         )
         current_app.logger.info("[LLM] Initialized successfully.")
     except Exception as e:
         current_app.logger.exception("[LLM] Initialization failed.")
         raise RuntimeError(f"Failed to initialize LLM: {e}")
 
-    # 4. Initialize Reranker and Contextual Compression Retriever
+    # 4. Initialize MultiQueryRetriever (without reranking)
     if llm and vectorstore:
-        current_app.logger.info("[Retriever] Initializing base retriever and Flashrank reranker.")
+        current_app.logger.info("[Retriever] Initializing base retriever and MultiQueryRetriever.")
         
-        base_retriever = vectorstore.as_retriever(search_kwargs={"k": 20})
+        base_retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
         
-        compressor = FlashrankRerank(top_n=5)
-        
-        compression_retriever = ContextualCompressionRetriever(
-            base_compressor=compressor, 
-            base_retriever=base_retriever
-        )
-        current_app.logger.info("[Retriever] Reranker initialized successfully.")
-        
-        current_app.logger.info("[Retriever] Initializing MultiQueryRetriever with reranking.")
+        current_app.logger.info("[Retriever] Initializing MultiQueryRetriever for enhanced query processing.")
         retriever = MultiQueryRetriever.from_llm(
-            retriever=compression_retriever,
+            retriever=base_retriever,
             llm=llm
         )
-        current_app.logger.info("[Retriever] Multi-Query Reranking Retriever initialized successfully.")
+        current_app.logger.info("[Retriever] MultiQueryRetriever initialized successfully.")
     else:
         retriever = None
         current_app.logger.warning("[Retriever] Not initialized due to missing LLM or vectorstore.")
@@ -396,21 +387,21 @@ def setup_rag_components():
 
     # 5. Create Enhanced Conversational QA Chain
     if llm and retriever:
-        current_app.logger.info("[QA Chain] Initializing conversational QA chain with reranking retriever.")
-        prompt_template_str = """You are a clinical equipment specialist. Use the following highly relevant, reranked context to answer questions about medical equipment.
+        current_app.logger.info("[QA Chain] Initializing conversational QA chain with MultiQueryRetriever.")
+        prompt_template_str = """You are a clinical equipment specialist. Use the following context to answer questions about medical equipment.
 
 The context includes both document content and extracted equipment metadata (specifications, features, dimensions, etc.).
 
 Previous conversation:
 {chat_history}
 
-Reranked Context with Equipment Information:
+Context with Equipment Information:
 {context}
 
 Question: {input}
 
 Instructions:
-- Base your answer strictly on the provided reranked context.
+- Base your answer strictly on the provided context.
 - Be precise with technical information, including model numbers, dimensions, and specifications.
 - If the context does not contain the answer, state that the information is not available in the provided documents.
 - Prioritize accuracy and conciseness.
@@ -456,7 +447,7 @@ def get_rag_answer(user_query: str, chat_history: list = None):
         return "Advanced RAG components not fully initialized. Please check the server setup and logs.", chat_history
 
     try:
-        current_app.logger.info(f"[Advanced Query] Processing query with reranking: '{user_query[:70]}...'")
+        current_app.logger.info(f"[Advanced Query] Processing query with MultiQueryRetriever: '{user_query[:70]}...'")
 
         result = qa_chain.invoke({
             "input": user_query,
@@ -469,12 +460,12 @@ def get_rag_answer(user_query: str, chat_history: list = None):
             answer = str(result)
 
         retrieved_docs = result.get("context", [])
-        current_app.logger.info(f"[Reranked Retriever] Retrieved {len(retrieved_docs)} reranked docs for query: '{user_query[:70]}...'")
+        current_app.logger.info(f"[Retriever] Retrieved {len(retrieved_docs)} docs for query: '{user_query[:70]}...'")
 
         for i, doc in enumerate(retrieved_docs):
             equipment_name = doc.metadata.get('equipment_name', 'Unknown')
             model_number = doc.metadata.get('model_number', 'N/A')
-            current_app.logger.debug(f"Reranked Doc {i+1}: Equipment={equipment_name}, Model={model_number}")
+            current_app.logger.debug(f"Retrieved Doc {i+1}: Equipment={equipment_name}, Model={model_number}")
 
         chat_history.append(HumanMessage(content=user_query))
         chat_history.append(AIMessage(content=answer))
@@ -485,4 +476,4 @@ def get_rag_answer(user_query: str, chat_history: list = None):
 
     except Exception as e:
         current_app.logger.exception(f"[Advanced RAG Error] Exception during query processing: '{user_query[:50]}...'")
-        return f"An error occurred during query processing with reranking: {str(e)}. Please check server logs.", chat_history
+        return f"An error occurred during query processing with MultiQueryRetriever: {str(e)}. Please check server logs.", chat_history
