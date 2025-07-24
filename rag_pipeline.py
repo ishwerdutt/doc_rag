@@ -376,21 +376,14 @@ def setup_rag_components():
     if llm and vectorstore:
         current_app.logger.info("[Retriever] Initializing base retriever and MultiQueryRetriever.")
         
-        base_retriever = vectorstore.as_retriever(search_kwargs={"k": 20})
-        compressor = FlashrankRerank(top_n=5)
+        base_retriever = vectorstore.as_retriever(search_kwargs={"k": 7})
         
-        compression_retriever = ContextualCompressionRetriever(
-            base_compressor=compressor, 
-            base_retriever=base_retriever,
+        retriever = MultiQueryRetriever.from_llm(
+            retriever=base_retriever,
+            llm=llm
         )
-        current_app.logger.info("[Retriever] Compression retriever initialized successfully.")
-        # retriever = MultiQueryRetriever.from_llm(
-        #     retriever=compression_retriever,
-        #     llm=llm
-        # )
         
-        retriever = compression_retriever
-        # current_app.logger.info("[Retriever] MultiQueryRetriever initialized successfully.")
+        current_app.logger.info("[Retriever] MultiQueryRetriever initialized successfully.")
     else:
         retriever = None
         current_app.logger.warning("[Retriever] Not initialized due to missing LLM or vectorstore.")

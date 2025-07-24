@@ -7,6 +7,7 @@ class Config:
     FAISS_INDEX_PATH = os.path.join(BASE_DIR, 'data', 'faiss_index')
     MODEL_NAME = "gemini-2.5-flash"
     TEMPERATURE = 0.3
+    PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
     
     # flask app configurations
     
