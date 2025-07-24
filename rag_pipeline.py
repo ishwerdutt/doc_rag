@@ -2,6 +2,9 @@ import os
 import re
 from flask import current_app
 import psutil
+import time
+import threading
+from tqdm import tqdm
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.messages import AIMessage, HumanMessage
@@ -10,7 +13,8 @@ from langchain_community.vectorstores import FAISS
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
-from langchain.retrievers import MultiQueryRetriever
+from langchain.retrievers import MultiQueryRetriever, ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import FlashrankRerank
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -361,7 +365,7 @@ def setup_rag_components():
         llm = ChatGoogleGenerativeAI(
             model=model_name,
             google_api_key=api_key,
-            temperature=0.5
+            temperature=current_app.config.get("TEMPERATURE")
         )
         current_app.logger.info("[LLM] Initialized successfully.")
     except Exception as e:
@@ -372,14 +376,21 @@ def setup_rag_components():
     if llm and vectorstore:
         current_app.logger.info("[Retriever] Initializing base retriever and MultiQueryRetriever.")
         
-        base_retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+        base_retriever = vectorstore.as_retriever(search_kwargs={"k": 20})
+        compressor = FlashrankRerank(top_n=7)
         
-        current_app.logger.info("[Retriever] Initializing MultiQueryRetriever for enhanced query processing.")
-        retriever = MultiQueryRetriever.from_llm(
-            retriever=base_retriever,
-            llm=llm
+        compression_retriever = ContextualCompressionRetriever(
+            base_compressor=compressor, 
+            base_retriever=base_retriever,
         )
-        current_app.logger.info("[Retriever] MultiQueryRetriever initialized successfully.")
+        current_app.logger.info("[Retriever] Compression retriever initialized successfully.")
+        # retriever = MultiQueryRetriever.from_llm(
+        #     retriever=compression_retriever,
+        #     llm=llm
+        # )
+        
+        retriever = compression_retriever
+        # current_app.logger.info("[Retriever] MultiQueryRetriever initialized successfully.")
     else:
         retriever = None
         current_app.logger.warning("[Retriever] Not initialized due to missing LLM or vectorstore.")
@@ -449,10 +460,42 @@ def get_rag_answer(user_query: str, chat_history: list = None):
     try:
         current_app.logger.info(f"[Advanced Query] Processing query with MultiQueryRetriever: '{user_query[:70]}...'")
 
+        # Progress bar setup
+        progress_bar = None
+        progress_complete = threading.Event()
+        
+        def show_progress():
+            nonlocal progress_bar
+            progress_bar = tqdm(total=100, desc=" LLM Processing", unit="%", ncols=80)
+            start_time = time.time()
+            
+            while not progress_complete.is_set():
+                elapsed = time.time() - start_time
+                # Simulate progress based on elapsed time (most queries take 2-10 seconds)
+                progress = min(95, int((elapsed / 8.0) * 100))
+                progress_bar.n = progress
+                progress_bar.refresh()
+                time.sleep(0.1)
+            
+            # Complete the progress bar
+            progress_bar.n = 100
+            progress_bar.refresh()
+            progress_bar.close()
+
+        # Start progress bar in separate thread
+        progress_thread = threading.Thread(target=show_progress)
+        progress_thread.start()
+
+        start_time = time.time()
         result = qa_chain.invoke({
             "input": user_query,
             "chat_history": chat_history
         })
+        end_time = time.time()
+        
+        # Stop progress bar
+        progress_complete.set()
+        progress_thread.join()
 
         answer = result.get("answer")
         if answer is None:
@@ -470,10 +513,15 @@ def get_rag_answer(user_query: str, chat_history: list = None):
         chat_history.append(HumanMessage(content=user_query))
         chat_history.append(AIMessage(content=answer))
 
+        elapsed_time = end_time - start_time
         current_app.logger.info(f"[Advanced Answer] Generated for '{user_query[:50]}...': '{answer[:50]}...'")
+        current_app.logger.info(f"[Timing]  Total processing time: {elapsed_time:.2f} seconds")
 
         return answer, chat_history
 
     except Exception as e:
+        # Ensure progress bar is cleaned up on error
+        if 'progress_complete' in locals():
+            progress_complete.set()
         current_app.logger.exception(f"[Advanced RAG Error] Exception during query processing: '{user_query[:50]}...'")
         return f"An error occurred during query processing with MultiQueryRetriever: {str(e)}. Please check server logs.", chat_history
