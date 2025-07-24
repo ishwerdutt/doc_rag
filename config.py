@@ -15,6 +15,7 @@ class Config:
     PORT = 5000
     HOST = '0.0.0.0'
     # Load Google API key from environment variable, fallback to placeholder if not set
-    GOOGLE_API_KEY = os.getenv("API_KEY")  
+    GOOGLE_API_KEY = os.getenv("API_KEY")
+    
     
     

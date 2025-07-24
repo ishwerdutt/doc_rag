@@ -13,10 +13,10 @@ from langchain_community.vectorstores import FAISS
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
-from langchain.retrievers import MultiQueryRetriever, ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import FlashrankRerank
+from langchain.retrievers import MultiQueryRetriever
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 # Global variables to store initialized RAG components
 vectorstore = None
@@ -295,11 +295,10 @@ def setup_rag_components():
 
     # 1. Initialize Embeddings Model
     try:
-        current_app.logger.info("[Embeddings] Initializing HuggingFace embeddings.")
-        embeddings = HuggingFaceEmbeddings(
-            model_name="BAAI/bge-large-en-v1.5",
-            encode_kwargs={"normalize_embeddings": True},
-            model_kwargs={'device': 'cpu'}
+        current_app.logger.info("[Embeddings] Initializing Google Gemini Embeddings.")
+        embeddings = GoogleGenerativeAIEmbeddings(
+            model="models/gemini-embedding-001", 
+            google_api_key=api_key,
         )
         current_app.logger.info("[Embeddings] Initialized successfully.")
     except Exception as e:

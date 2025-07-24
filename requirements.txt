@@ -19,3 +19,4 @@ rank_bm25
 spacy
 langchain-experimental
 flashrank
+simsimd
