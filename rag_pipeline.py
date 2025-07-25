@@ -360,11 +360,11 @@ def setup_rag_components():
 
     # 3. Initialize Gemini LLM
     try:
-        current_app.logger.info(f"[LLM] Initializing Gemini model '{model_name}' for equipment queries.")
+        current_app.logger.info("[LLM] Initializing Gemini model for equipment queries.")
         llm = ChatGoogleGenerativeAI(
             model=model_name,
             google_api_key=api_key,
-            temperature=current_app.config.get("TEMPERATURE")
+            temperature=current_app.config.get("TEMPERATURE"),
         )
         current_app.logger.info("[LLM] Initialized successfully.")
     except Exception as e:
@@ -375,12 +375,12 @@ def setup_rag_components():
     if llm and vectorstore:
         current_app.logger.info("[Retriever] Initializing base retriever and MultiQueryRetriever.")
         
-        base_retriever = vectorstore.as_retriever(search_kwargs={"k": 7})
+        base_retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
         
         retriever = MultiQueryRetriever.from_llm(
             retriever=base_retriever,
-            llm=llm
-        )
+            llm=llm,
+       )
         
         current_app.logger.info("[Retriever] MultiQueryRetriever initialized successfully.")
     else:
@@ -391,25 +391,31 @@ def setup_rag_components():
     # 5. Create Enhanced Conversational QA Chain
     if llm and retriever:
         current_app.logger.info("[QA Chain] Initializing conversational QA chain with MultiQueryRetriever.")
-        prompt_template_str = """You are a clinical equipment specialist. Use the following context to answer questions about medical equipment.
-
-The context includes both document content and extracted equipment metadata (specifications, features, dimensions, etc.).
-
-Previous conversation:
-{chat_history}
-
-Context with Equipment Information:
-{context}
-
-Question: {input}
+        prompt_template_str = """You are a clinical equipment specialist. Use the provided context, which includes both document content and extracted equipment metadata (e.g., specifications, features, dimensions), to answer the question accurately and concisely.
 
 Instructions:
-- Base your answer strictly on the provided context.
-- Be precise with technical information, including model numbers, dimensions, and specifications.
-- If the context does not contain the answer, state that the information is not available in the provided documents.
-- Prioritize accuracy and conciseness.
+- Rely strictly on the given context; do not fabricate or infer any details not explicitly stated.
+- Always include precise technical data such as model numbers, power requirements, physical dimensions, performance specifications, or feature sets if available.
+- Prefer bullet points or brief paragraphs for clarity, especially when listing features or specs.
+- Use exact wording from the context when quoting features or technical specs.
+- Maintain a professional, factual tone appropriate for technical or procurement teams.
+- If the context lacks the necessary information to answer the question, respond with: "The required information is not available in the provided context."
+- Avoid repetition or filler language—prioritize speed and relevance.
+- Do not speculate, generalize, or add assumptions beyond the data.
+- If multiple models or configurations are mentioned, clearly distinguish between them in the response.
 
-Answer:"""
+Input:
+- Previous Conversation:  
+  {chat_history}
+
+- Context with Equipment Information:  
+  {context}
+
+- Question:  
+  {input}
+
+Answer:
+"""
         PROMPT = ChatPromptTemplate.from_template(prompt_template_str)
 
         doc_chain = create_stuff_documents_chain(llm, prompt=PROMPT)
@@ -441,7 +447,7 @@ def get_rag_answer(user_query: str, chat_history: list = None):
     identity_phrases = {"who are you", "what are you", "what is your name", "what's up", "hello", "hi", "hey", "hi there", "hello there", "hey there", "hi hello", "hello hello", "hey hello", "hi hey", "hello hey", "hey hey", "hi hi", "hello hi", "hey hi", "How are you doing?", "whats up"}
 
     if normalized_query in identity_phrases:
-        current_app.logger.info(f"[Identity] Predefined answer returned for query: '{user_query[:70]}...'")
+        current_app.logger.info(f"[Identity] Predefined answer returned for query: '{user_query}...'")
         return "I am a specialized clinical equipment assistant that can help you find information about medical devices, their specifications, features, installation requirements, and operational details.", chat_history
 
     # Ensure RAG components are initialized
