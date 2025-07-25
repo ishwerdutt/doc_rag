@@ -5,9 +5,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 class Config:
     PDF_DATA_PATH = os.path.join(BASE_DIR, 'data', 'pdfs')
     FAISS_INDEX_PATH = os.path.join(BASE_DIR, 'data', 'faiss_index')
-    MODEL_NAME = "gemini-2.5-flash"
+    MODEL_NAME = "gemini-2.5-flash-lite"
     TEMPERATURE = 0.3
     PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     
     # flask app configurations
     
